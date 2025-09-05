@@ -21,3 +21,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Coverage reports
+/coverage-html
+coverage-clover.xml
+coverage.txt
+database/testing.sqlite
