@@ -19,6 +19,8 @@ class MusicSeeder extends Seeder
                 'youtube_id' => 's9kVG2ZaTS4',
                 'thumb' => 'https://img.youtube.com/vi/s9kVG2ZaTS4/hqdefault.jpg',
                 'user_id' => $userId,
+                'is_approved' => true,
+                'count_to_approve' => 0,
             ],
             [
                 'title' => 'Pagode em Brasília',
@@ -26,6 +28,8 @@ class MusicSeeder extends Seeder
                 'youtube_id' => 'lpGGNA6_920',
                 'thumb' => 'https://img.youtube.com/vi/lpGGNA6_920/hqdefault.jpg',
                 'user_id' => $userId,
+                'is_approved' => true,
+                'count_to_approve' => 0,
             ],
             [
                 'title' => 'Rio de Lágrimas',
@@ -33,6 +37,8 @@ class MusicSeeder extends Seeder
                 'youtube_id' => 'FxXXvPL3JIg',
                 'thumb' => 'https://img.youtube.com/vi/FxXXvPL3JIg/hqdefault.jpg',
                 'user_id' => $userId,
+                'is_approved' => true,
+                'count_to_approve' => 0,
             ],
             [
                 'title' => 'Tristeza do Jeca',
@@ -40,6 +46,8 @@ class MusicSeeder extends Seeder
                 'youtube_id' => 'tRQ2PWlCcZk',
                 'thumb' => 'https://img.youtube.com/vi/tRQ2PWlCcZk/hqdefault.jpg',
                 'user_id' => $userId,
+                'is_approved' => true,
+                'count_to_approve' => 0,
             ],
             [
                 'title' => 'Terra roxa',
@@ -47,11 +55,16 @@ class MusicSeeder extends Seeder
                 'youtube_id' => '4Nb89GFu2g4',
                 'thumb' => 'https://img.youtube.com/vi/4Nb89GFu2g4/hqdefault.jpg',
                 'user_id' => $userId,
+                'is_approved' => true,
+                'count_to_approve' => 0,
             ]
         ];
 
         foreach ($initialMusics as $music) {
-            Music::updateOrCreate($music);
+            Music::updateOrCreate(
+                ['youtube_id' => $music['youtube_id']],
+                $music
+            );
         }
     }
 }

@@ -2,23 +2,27 @@
 
 namespace App\Providers;
 
+use App\Models\Music;
+use App\Models\User;
+use App\Observers\MusicObserver;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        Music::observe(MusicObserver::class);
+        
+        // Configurar activity log
+        Activity::saving(function (Activity $activity) {
+            $activity->causer_id = auth()->id();
+            $activity->causer_type = User::class;
+        });
     }
 }

@@ -32,6 +32,11 @@ class UserController extends Controller
 
         $user = User::create($request->validated());
 
+        activity()
+            ->performedOn($user)
+            ->withProperties($request->validated())
+            ->log('User created');
+
         return response()->json([
             'message' => 'User created successfully.',
             'data' => $user
@@ -56,6 +61,11 @@ class UserController extends Controller
 
         $targetUser->update($request->validated());
 
+        activity()
+            ->performedOn($targetUser)
+            ->withProperties($request->validated())
+            ->log('User updated');
+
         return response()->json([
             'message' => 'User updated successfully.',
             'data' => $targetUser
@@ -66,6 +76,10 @@ class UserController extends Controller
     {
         $targetUser = User::findOrFail($id);
         $this->authorize('delete', $targetUser);
+
+        activity()
+            ->performedOn($targetUser)
+            ->log('User deleted');
 
         $targetUser->delete();
 
