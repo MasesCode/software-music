@@ -62,4 +62,9 @@ class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
         ];
     }
+
+    public function musics()
+    {
+        return $this->hasMany(Music::class);
+    }
 }
