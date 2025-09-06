@@ -56,6 +56,21 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Music::class);
     }
 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->unread();
+    }
+
+    public function unreadNotificationsCount()
+    {
+        return $this->unreadNotifications()->count();
+    }
+
     public function isAdmin(): bool
     {
         return $this->is_admin;

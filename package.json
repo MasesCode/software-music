@@ -1,0 +1,35 @@
+{
+  "name": "top5-tiao-carreiro",
+  "version": "1.0.0",
+  "description": "Sistema completo Top 5 Tião Carreiro - Frontend React + Backend Laravel",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd api && php artisan serve --host=0.0.0.0 --port=8000",
+    "dev:frontend": "cd web && npm run dev",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "install:backend": "cd api && composer install",
+    "install:frontend": "cd web && npm install",
+    "setup": "npm run install:all && npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd api && cp .env.example .env && php artisan key:generate && php artisan jwt:secret && php artisan migrate --seed",
+    "setup:frontend": "cd web && echo 'VITE_API_BASE_URL=http://localhost:8000/api' > .env.local",
+    "build": "cd web && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd api && php artisan test",
+    "test:frontend": "cd web && npm run test",
+    "stop": "pkill -f 'php artisan serve' && pkill -f 'npm run dev'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "laravel",
+    "react",
+    "typescript",
+    "jwt",
+    "youtube-api",
+    "music",
+    "tiao-carreiro"
+  ],
+  "author": "Mases",
+  "license": "MIT"
+}
