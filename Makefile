@@ -53,8 +53,23 @@ seed: ## Executa os seeders
 fresh: ## Reseta o banco e executa migrações
 	docker-compose exec backend php artisan migrate:fresh --seed
 
-test: ## Executa os testes
+test: ## Executa todos os testes
+	@echo "Executando testes do backend..."
 	docker-compose exec backend php artisan test
+	@echo "Executando testes do frontend..."
+	docker-compose exec frontend npm run test:run
+
+test-backend: ## Executa apenas os testes do backend
+	docker-compose exec backend php artisan test
+
+test-frontend: ## Executa apenas os testes do frontend
+	docker-compose exec frontend npm run test:run
+
+test-coverage: ## Executa testes com cobertura
+	@echo "Executando testes com cobertura do backend..."
+	docker-compose exec backend php artisan test --coverage
+	@echo "Executando testes com cobertura do frontend..."
+	docker-compose exec frontend npm run test:coverage
 
 install: ## Instala dependências
 	@echo "Instalando dependências do backend..."

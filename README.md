@@ -16,6 +16,7 @@ Um sistema completo para gerenciar sugestões de músicas do Tião Carreiro e Pa
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Comandos Úteis](#comandos-úteis)
 - [Troubleshooting](#troubleshooting)
+- [Executando Testes](#🧪-executando-testes)
 - [Contribuição](#contribuição)
 
 ## 🎯 Sobre o Projeto
@@ -333,8 +334,17 @@ make seed
 # Acessar shell do backend
 make shell-backend
 
-# Executar testes
+# Executar todos os testes
 make test
+
+# Executar testes do backend
+make test-backend
+
+# Executar testes do frontend
+make test-frontend
+
+# Executar testes com cobertura
+make test-coverage
 
 # Gerar chaves necessárias (Docker)
 make keys
@@ -519,6 +529,65 @@ docker system prune -f
 docker-compose up --build -d
 ```
 
+## 🧪 Executando Testes
+
+### Testes do Backend (Laravel)
+
+```bash
+# Usando Docker (recomendado)
+docker-compose exec backend php artisan test
+
+# Usando Makefile
+make test-backend
+
+# Instalação manual
+cd api
+php artisan test
+
+# Com cobertura de código
+php artisan test --coverage
+```
+
+### Testes do Frontend (React)
+
+```bash
+# Usando Docker
+docker-compose exec frontend npm run test
+
+# Usando Makefile
+make test-frontend
+
+# Instalação manual
+cd web
+npm run test
+
+# Modo watch (desenvolvimento)
+npm run test:run
+
+# Interface visual
+npm run test:ui
+
+# Com cobertura de código
+npm run test:coverage
+```
+
+### Executar Todos os Testes
+
+```bash
+# Usando Makefile
+make test
+
+# Ou executar separadamente
+make test-backend
+make test-frontend
+```
+
+### Cobertura de Testes
+
+- **Backend**: Testes unitários e de integração com PHPUnit
+- **Frontend**: 64 testes cobrindo componentes, hooks, stores e utilitários
+- **Cobertura**: Execute `npm run test:coverage` para ver relatório detalhado
+
 ## 🤝 Contribuição
 
 ### Como Contribuir
@@ -527,7 +596,7 @@ docker-compose up --build -d
 2. **Crie uma branch** para sua feature (`git checkout -b feature/AmazingFeature`)
 3. **Commit** suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. **Push** para a branch (`git push origin feature/AmazingFeature`)
-5. **Abra um Pull Request**
+5. **Abra um Pull Request`
 
 ### Padrões de Código
 
@@ -543,16 +612,6 @@ Ao reportar bugs, inclua:
 - Passos para reproduzir
 - Screenshots (se aplicável)
 - Informações do ambiente (OS, Docker, etc.)
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
-## 📞 Suporte
-
-Para suporte e dúvidas:
-- Abra uma **Issue** no GitHub
-- Entre em contato com a equipe de desenvolvimento
 
 ---
 
