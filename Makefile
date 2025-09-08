@@ -67,3 +67,15 @@ setup: ## Configuração inicial do projeto
 	cp docker.env.example .env
 	@echo "Arquivo .env criado. Configure as variáveis antes de continuar."
 	@echo "Execute 'make dev' para iniciar em modo desenvolvimento."
+
+keys: ## Gera as chaves necessárias (APP_KEY e JWT_SECRET)
+	@echo "Gerando chaves necessárias..."
+	docker-compose exec backend php artisan key:generate
+	docker-compose exec backend php artisan jwt:secret --force
+	@echo "Chaves geradas com sucesso!"
+
+keys-local: ## Gera as chaves localmente (para instalação manual)
+	@echo "Gerando chaves localmente..."
+	cd api && php artisan key:generate
+	cd api && php artisan jwt:secret --force
+	@echo "Chaves geradas com sucesso!"

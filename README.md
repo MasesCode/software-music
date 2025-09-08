@@ -11,6 +11,7 @@ Um sistema completo para gerenciar sugestões de músicas do Tião Carreiro e Pa
 - [Instalação com Docker](#instalação-com-docker)
 - [Instalação Manual](#instalação-manual)
 - [Configuração da API do YouTube](#configuração-da-api-do-youtube)
+- [Chaves Necessárias](#chaves-necessárias)
 - [Como Usar](#como-usar)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Comandos Úteis](#comandos-úteis)
@@ -113,12 +114,18 @@ nano .env
 
 # 3. Inicie o projeto
 ./docker-start.sh
+
+# 4. Gere as chaves necessárias
+make keys
 ```
 
 ### Modo de Desenvolvimento
 ```bash
 # Para desenvolvimento com hot reload
 ./docker-dev.sh
+
+# Gere as chaves necessárias
+make keys
 ```
 
 ### Comandos Docker Úteis
@@ -163,16 +170,19 @@ cp .env.example .env
 # 4. Gere a chave da aplicação
 php artisan key:generate
 
-# 5. Configure o banco SQLite
+# 5. Gere a chave JWT (necessária para autenticação)
+php artisan jwt:secret
+
+# 6. Configure o banco SQLite
 touch database/database.sqlite
 
-# 6. Execute as migrações
+# 7. Execute as migrações
 php artisan migrate
 
-# 7. Execute os seeders (opcional)
+# 8. Execute os seeders (opcional)
 php artisan db:seed
 
-# 8. Inicie o servidor
+# 9. Inicie o servidor
 php artisan serve
 ```
 
@@ -325,6 +335,12 @@ make shell-backend
 
 # Executar testes
 make test
+
+# Gerar chaves necessárias (Docker)
+make keys
+
+# Gerar chaves necessárias (instalação manual)
+make keys-local
 ```
 
 ### Comandos Docker Diretos
@@ -367,9 +383,60 @@ php artisan config:clear
 # Gerar chave da aplicação
 php artisan key:generate
 
+# Gerar chave JWT
+php artisan jwt:secret
+
 # Executar testes
 php artisan test
 ```
+
+## 🔐 Chaves Necessárias
+
+### Chaves Obrigatórias
+
+O sistema requer duas chaves essenciais para funcionar corretamente:
+
+#### 1. APP_KEY (Chave da Aplicação Laravel)
+```bash
+# Gere a chave da aplicação
+php artisan key:generate
+```
+- **O que é**: Chave de criptografia do Laravel
+- **Onde fica**: `APP_KEY=` no arquivo `.env`
+- **Formato**: `base64:chave_de_32_caracteres`
+
+#### 2. JWT_SECRET (Chave de Autenticação JWT)
+```bash
+# Gere a chave JWT
+php artisan jwt:secret --force
+```
+- **O que é**: Chave para assinar tokens de autenticação
+- **Onde fica**: `JWT_SECRET=` no arquivo `.env`
+- **Formato**: String de pelo menos 32 caracteres
+- **Importante**: Deve ter pelo menos 256 bits (32 caracteres)
+
+#### 3. YOUTUBE_API_KEY (Chave da API do YouTube)
+```bash
+# Configure no arquivo .env
+YOUTUBE_API_KEY=sua_chave_da_api_do_youtube
+```
+- **O que é**: Chave para acessar a YouTube Data API v3
+- **Onde fica**: `YOUTUBE_API_KEY=` no arquivo `.env`
+- **Como obter**: Veja a seção [Configuração da API do YouTube](#🔑-configuração-da-api-do-youtube)
+
+### ⚠️ Problemas Comuns com Chaves
+
+#### Erro: "Key provided is shorter than 256 bits"
+- **Causa**: JWT_SECRET muito curta
+- **Solução**: Execute `php artisan jwt:secret --force`
+
+#### Erro: "No application encryption key has been specified"
+- **Causa**: APP_KEY vazia
+- **Solução**: Execute `php artisan key:generate`
+
+#### Erro: "YouTube API quota exceeded"
+- **Causa**: Excedeu a cota da API do YouTube
+- **Solução**: Aguarde 24h ou configure uma nova chave
 
 ## 🐛 Troubleshooting
 
@@ -400,12 +467,27 @@ docker-compose exec backend php artisan migrate:fresh
 docker-compose exec backend php artisan db:seed
 ```
 
-#### 4. API do YouTube não funciona
+#### 4. Erro de chave JWT muito curta (Key provided is shorter than 256 bits)
+```bash
+# Gere uma nova chave JWT
+php artisan jwt:secret --force
+
+# Ou configure manualmente no .env
+JWT_SECRET=sua_chave_jwt_aqui_de_pelo_menos_32_caracteres
+```
+
+#### 5. Erro de APP_KEY vazia
+```bash
+# Gere a chave da aplicação
+php artisan key:generate
+```
+
+#### 6. API do YouTube não funciona
 - Verifique se a chave está correta no arquivo `.env`
 - Verifique se a API está ativada no Google Cloud Console
 - Verifique se não excedeu a cota diária
 
-#### 5. Frontend não carrega
+#### 7. Frontend não carrega
 ```bash
 # Rebuild do frontend
 docker-compose build --no-cache frontend
