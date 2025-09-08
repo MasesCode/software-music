@@ -37,6 +37,11 @@ class Music extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function contributions()
+    {
+        return $this->hasMany(MusicContribution::class);
+    }
+
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('is_approved', true);

@@ -6,6 +6,8 @@ use App\Http\Requests\Musics\ApproveMusicRequest;
 use App\Http\Requests\Musics\StoreMusicRequest;
 use App\Http\Requests\Musics\UpdateMusicRequest;
 use App\Models\Music;
+use App\Models\MusicContribution;
+use App\Services\NotificationService;
 use App\Services\YouTubeService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -17,13 +19,14 @@ class MusicController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        private YouTubeService $youTubeService
+        private YouTubeService $youTubeService,
+        private NotificationService $notificationService
     ) {}
 
     public function index(): JsonResponse
     {
-        $topFive = Music::query()->topFive()->get();
-        $others = Music::query()->afterTopFive()->paginate(10);
+        $topFive = Music::query()->topFive()->with('user')->get();
+        $others = Music::query()->afterTopFive()->with('user')->paginate(10);
 
         return response()->json([
             'message' => 'Musics retrieved successfully.',
@@ -36,7 +39,7 @@ class MusicController extends Controller
 
     public function topFive(): JsonResponse
     {
-        $musics = Music::query()->topFive()->get();
+        $musics = Music::query()->topFive()->with('user')->get();
 
         return response()->json([
             'message' => 'Top 5 musics retrieved successfully.',
@@ -46,7 +49,7 @@ class MusicController extends Controller
 
     public function others(): JsonResponse
     {
-        $musics = Music::query()->afterTopFive()->paginate(10);
+        $musics = Music::query()->afterTopFive()->with('user')->paginate(10);
 
         return response()->json([
             'message' => 'Other musics retrieved successfully.',
@@ -76,6 +79,13 @@ class MusicController extends Controller
             return response()->json([
                 'message' => 'Invalid YouTube URL.',
             ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $existingMusic = Music::where('youtube_id', $videoId)->first();
+        if ($existingMusic) {
+            return response()->json([
+                'message' => 'A music with this YouTube video has already been suggested.',
+            ], Response::HTTP_CONFLICT);
         }
 
         $videoInfo = $this->youTubeService->getVideoInfo($videoId);
@@ -157,6 +167,8 @@ class MusicController extends Controller
                 ->performedOn($music)
                 ->log('Music approved by admin');
         } else {
+            $this->notificationService->createRejectionNotification($music);
+            
             activity()
                 ->performedOn($music)
                 ->log('Music rejected and deleted by admin');
@@ -172,24 +184,48 @@ class MusicController extends Controller
 
     public function contribute(Music $music): JsonResponse
     {
-        $this->authorize('contribute', $music);
+        try {
+            $this->authorize('contribute', $music);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            if ($music->user_id === auth()->id()) {
+                return response()->json([
+                    'message' => 'You cannot contribute to a music suggestion that you created yourself.',
+                ], Response::HTTP_FORBIDDEN);
+            }
+            
+            return response()->json([
+                'message' => 'Access denied.',
+            ], Response::HTTP_FORBIDDEN);
+        }
 
-        // Verificar se a música já está aprovada (dupla verificação)
         if ($music->isApproved()) {
             return response()->json([
                 'message' => 'This music is already approved and cannot receive more contributions.',
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        $existingContribution = MusicContribution::where('music_id', $music->id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($existingContribution) {
+            return response()->json([
+                'message' => 'You have already contributed to this music.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        MusicContribution::create([
+            'music_id' => $music->id,
+            'user_id' => auth()->id(),
+        ]);
+
         $music->incrementApprovalCount();
 
         if ($music->shouldAutoApprove()) {
             $music->update(['is_approved' => true]);
             
-            // Criar notificação de auto-aprovação (apenas em produção)
             if (!app()->environment('testing')) {
-                app(\App\Observers\MusicNotificationObserver::class)
-                    ->createAutoApprovalNotification($music);
+                $this->notificationService->createAutoApprovalNotification($music);
             }
             
             activity()

@@ -53,6 +53,14 @@ class MusicPolicy
 
     public function contribute(User $user, Music $music): bool
     {
-        return !$music->isApproved();
+        if ($music->isApproved()) {
+            return false;
+        }
+        
+        if ($music->user_id === $user->id) {
+            return false;
+        }
+        
+        return true;
     }
 }

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Notification, NotificationResponse } from '@/types';
+import { useAuthStore } from '@/store/auth';
 
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
+  const { isAuthenticated } = useAuthStore();
 
-  // Buscar notificações
   const {
     data: notificationsData,
     isLoading,
@@ -15,30 +16,41 @@ export const useNotifications = () => {
   } = useQuery<NotificationResponse>({
     queryKey: ['notifications'],
     queryFn: async () => {
+      console.log('🔔 Fetching notifications...');
       const response = await api.get<NotificationResponse>('/notifications');
-      return response.data;
+      console.log('🔔 Notifications response:', response);
+      return response;
     },
-    refetchInterval: 30000, // Refetch a cada 30 segundos
+    refetchInterval: isAuthenticated ? 30000 : false,
+    enabled: isAuthenticated,
   });
 
-  // Buscar contagem de não lidas
   const { data: unreadCountData } = useQuery<{ unread_count: number }>({
     queryKey: ['notifications-unread-count'],
     queryFn: async () => {
+      console.log('🔔 Fetching unread count...');
       const response = await api.get<{ unread_count: number }>('/notifications/unread-count');
-      return response.data;
+      console.log('🔔 Unread count response:', response);
+      return response;
     },
-    refetchInterval: 10000, // Refetch a cada 10 segundos
+    refetchInterval: isAuthenticated ? 10000 : false,
+    enabled: isAuthenticated,
   });
 
-  // Atualizar contagem local
   useEffect(() => {
-    if (unreadCountData) {
+    console.log('🔔 Unread count data changed:', unreadCountData);
+    if (unreadCountData && typeof unreadCountData.unread_count === 'number') {
+      console.log('🔔 Setting unread count to:', unreadCountData.unread_count);
       setUnreadCount(unreadCountData.unread_count);
     }
   }, [unreadCountData]);
 
-  // Marcar como lida
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+    }
+  }, [isAuthenticated]);
+
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
       await api.post(`/notifications/${notificationId}/mark-as-read`);
@@ -48,7 +60,6 @@ export const useNotifications = () => {
     },
   });
 
-  // Marcar todas como lidas
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
       await api.post('/notifications/mark-all-as-read');
@@ -59,7 +70,6 @@ export const useNotifications = () => {
     },
   });
 
-  // Deletar notificação
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: number) => {
       await api.delete(`/notifications/${notificationId}`);
@@ -80,6 +90,15 @@ export const useNotifications = () => {
   const deleteNotification = (notificationId: number) => {
     deleteNotificationMutation.mutate(notificationId);
   };
+
+  console.log('🔔 Hook state:', {
+    notificationsData,
+    notifications: notificationsData?.data || [],
+    unreadCount,
+    isLoading,
+    error,
+    isAuthenticated
+  });
 
   return {
     notifications: notificationsData?.data || [],

@@ -136,6 +136,14 @@ export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) =
     isDeleting,
   } = useNotifications();
 
+  console.log('🔔 Modal state:', {
+    isOpen,
+    notifications,
+    unreadCount,
+    isLoading,
+    notificationsLength: notifications.length
+  });
+
   const handleMarkAsRead = (notificationId: number) => {
     markAsRead(notificationId);
   };

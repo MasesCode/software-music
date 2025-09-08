@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Suggestions from "./pages/Suggestions";
 import TopFive from "./pages/TopFive";
+import Users from "./pages/Users";
+import Logs from "./pages/Logs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/suggestions" element={<Suggestions />} />
               <Route path="/top-five" element={<TopFive />} />
+              <Route path="/users" element={<Users />} />
+              <Route path="/logs" element={<Logs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

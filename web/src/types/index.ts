@@ -24,7 +24,6 @@ export interface Music {
   user?: Pick<User, 'id' | 'name'>;
 }
 
-// Alias para compatibilidade com o frontend existente
 export type Song = Music;
 export type Suggestion = Music;
 

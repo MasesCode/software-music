@@ -11,7 +11,6 @@ class NotificationSeeder extends Seeder
 {
     public function run(): void
     {
-        // Criar ou buscar usuário Miguel Antonio
         $user = User::firstOrCreate(
             ['email' => 'miguel.antonio@example.com'],
             [
@@ -21,7 +20,6 @@ class NotificationSeeder extends Seeder
             ]
         );
 
-        // Criar música de sugestão
         $music = Music::create([
             'title' => 'Pagode do Tião Carreiro - Clássico',
             'youtube_id' => 'dQw4w9WgXcQ',
@@ -33,8 +31,7 @@ class NotificationSeeder extends Seeder
             'views' => 1250
         ]);
 
-        // Criar notificação de aprovação
-        $notification = Notification::create([
+        Notification::create([
             'user_id' => $user->id,
             'music_id' => $music->id,
             'type' => 'approved',
@@ -43,8 +40,7 @@ class NotificationSeeder extends Seeder
             'is_read' => false
         ]);
 
-        // Criar mais algumas notificações para testar
-        $notification2 = Notification::create([
+        Notification::create([
             'user_id' => $user->id,
             'music_id' => $music->id,
             'type' => 'auto_approved',

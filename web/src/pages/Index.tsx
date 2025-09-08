@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/auth';
 import { api, ApiError } from '@/lib/api';
 import { Song, ApiResponse } from '@/types';
 import { getYouTubeThumbnail } from '@/lib/youtube';
+import { getErrorMessage } from '@/lib/errorHandler';
 
 const Index = () => {
   const [topFive, setTopFive] = useState<Song[]>([]);
@@ -80,19 +81,34 @@ const Index = () => {
       await api.post(`/musics/${musicId}/contribute`);
       toast({
         title: t('success'),
-        description: 'Obrigado por contribuir! Seu voto foi registrado.',
+        description: t('contributionRecorded'),
       });
-      // Refresh top five to show updated counts
       const response = await api.get<{data: Song[]}>('/musics/top-five');
       setTopFive(response.data || []);
     } catch (error) {
-      if (error instanceof ApiError) {
-        toast({
-          title: t('error'),
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const approveMusic = async (musicId: number, action: 'approve' | 'reject') => {
+    try {
+      await api.post(`/musics/${musicId}/approve`, { action });
+      toast({
+        title: t('success'),
+        description: action === 'approve' ? t('musicApproved') : t('musicRejected'),
+      });
+      const response = await api.get<{data: Song[]}>('/musics/top-five');
+      setTopFive(response.data || []);
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -101,7 +117,6 @@ const Index = () => {
     const query = searchQuery.toLowerCase().trim();
     const title = song.title.toLowerCase();
     
-    // Busca exata ou que comece com a query
     return title === query || title.startsWith(query);
   });
 
@@ -167,7 +182,7 @@ const Index = () => {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredSongs.map((song) => (
-                  <SongCard key={song.id} song={song} onContribute={contributeToMusic} />
+                  <SongCard key={song.id} song={song} onContribute={contributeToMusic} onApprove={approveMusic} />
                 ))}
               </div>
             )}
@@ -196,8 +211,9 @@ const Index = () => {
                     <TopFiveCard 
                       key={song.id} 
                       song={song} 
-                      position={index + 1}
-                      onContribute={contributeToMusic}
+                      position={index + 1} 
+                      onContribute={contributeToMusic} 
+                      onApprove={approveMusic}
                     />
                   ))}
                 </div>
@@ -236,7 +252,7 @@ const Index = () => {
                     <>
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {otherSongs.map((song) => (
-                          <SongCard key={song.id} song={song} onContribute={contributeToMusic} />
+                          <SongCard key={song.id} song={song} onContribute={contributeToMusic} onApprove={approveMusic} />
                         ))}
                       </div>
                       
@@ -261,7 +277,7 @@ const Index = () => {
   );
 };
 
-const TopFiveCard = ({ song, position, onContribute }: { song: Song, position: number, onContribute: (id: number) => void }) => {
+const TopFiveCard = ({ song, position, onContribute, onApprove }: { song: Song, position: number, onContribute: (id: number) => void, onApprove: (id: number, action: 'approve' | 'reject') => void }) => {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -281,7 +297,7 @@ const TopFiveCard = ({ song, position, onContribute }: { song: Song, position: n
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openYouTube(song.youtube_id)}>
       <div className="flex h-48">
         <div className="flex-shrink-0 w-64">
           <div className="relative w-full h-full rounded-l-md overflow-hidden bg-muted">
@@ -341,27 +357,61 @@ const TopFiveCard = ({ song, position, onContribute }: { song: Song, position: n
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => copyLink(song.youtube_id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyLink(song.youtube_id);
+                  }}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => openYouTube(song.youtube_id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openYouTube(song.youtube_id);
+                  }}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </div>
               
               {user && !song.is_approved && (
-                <Button
-                  size="sm"
-                  onClick={() => onContribute(song.id)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {t('contribute')} ({song.count_to_approve}/5)
-                </Button>
+                user.role === 'admin' ? (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onApprove(song.id, 'approve');
+                      }}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      Aprovar
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onApprove(song.id, 'reject');
+                      }}
+                      className="flex-1 bg-red-600 hover:bg-red-700"
+                    >
+                      Reprovar
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onContribute(song.id);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {t('contribute')} ({song.count_to_approve}/5)
+                  </Button>
+                )
               )}
             </div>
           </div>
@@ -371,7 +421,7 @@ const TopFiveCard = ({ song, position, onContribute }: { song: Song, position: n
   );
 };
 
-const SongCard = ({ song, onContribute }: { song: Song, onContribute: (id: number) => void }) => {
+const SongCard = ({ song, onContribute, onApprove }: { song: Song, onContribute: (id: number) => void, onApprove: (id: number, action: 'approve' | 'reject') => void }) => {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -391,7 +441,7 @@ const SongCard = ({ song, onContribute }: { song: Song, onContribute: (id: numbe
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openYouTube(song.youtube_id)}>
       <CardHeader className="pb-3">
         {song.youtube_id && (
           <div className="relative aspect-video mb-3 rounded-md overflow-hidden bg-muted">
@@ -444,14 +494,20 @@ const SongCard = ({ song, onContribute }: { song: Song, onContribute: (id: numbe
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => copyLink(song.youtube_id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyLink(song.youtube_id);
+                }}
               >
                 <Copy className="h-4 w-4" />
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => openYouTube(song.youtube_id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openYouTube(song.youtube_id);
+                }}
               >
                 <ExternalLink className="h-4 w-4" />
               </Button>
@@ -473,13 +529,32 @@ const SongCard = ({ song, onContribute }: { song: Song, onContribute: (id: numbe
         </div>
         {user && !song.is_approved && (
           <div className="mt-3">
-            <Button
-              size="sm"
-              onClick={() => onContribute(song.id)}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              {t('contribute')} ({song.count_to_approve}/5)
-            </Button>
+            {user.role === 'admin' ? (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => onApprove(song.id, 'approve')}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  Aprovar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onApprove(song.id, 'reject')}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                >
+                  Reprovar
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => onContribute(song.id)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {t('contribute')} ({song.count_to_approve}/5)
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

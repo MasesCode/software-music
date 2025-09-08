@@ -16,7 +16,7 @@ export const languages: Language[] = [
 export const useLanguageStore = create<LanguageState>()(
   persist(
     (set) => ({
-      currentLanguage: languages[0], // Português como padrão
+      currentLanguage: languages[0],
       setLanguage: (language) => set({ currentLanguage: language }),
     }),
     {

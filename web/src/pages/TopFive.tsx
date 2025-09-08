@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Play, ExternalLink, Copy, Youtube, ThumbsUp } from 'lucide-react';
+import { Trophy, Play, ExternalLink, Copy, Youtube, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/auth';
 import { api, ApiError } from '@/lib/api';
 import { Music } from '@/types';
 import { getYouTubeThumbnail } from '@/lib/youtube';
+import { getErrorMessage } from '@/lib/errorHandler';
 
 const TopFive = () => {
   const [topFive, setTopFive] = useState<Music[]>([]);
@@ -43,17 +44,32 @@ const TopFive = () => {
       await api.post(`/musics/${musicId}/contribute`);
       toast({
         title: t('success'),
-        description: 'Obrigado por contribuir! Seu voto foi registrado.',
+        description: t('contributionRecorded'),
       });
-      fetchTopFive(); // Refresh to show updated counts
+      fetchTopFive();
     } catch (error) {
-      if (error instanceof ApiError) {
-        toast({
-          title: t('error'),
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const approveMusic = async (musicId: number, action: 'approve' | 'reject') => {
+    try {
+      await api.post(`/musics/${musicId}/approve`, { action });
+      toast({
+        title: t('success'),
+        description: action === 'approve' ? t('musicApproved') : t('musicRejected'),
+      });
+      fetchTopFive();
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -100,7 +116,7 @@ const TopFive = () => {
         ) : (
           <div className="space-y-6">
             {(topFive || []).map((music, index) => (
-              <Card key={music.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card key={music.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openYouTube(music.youtube_id)}>
                 <div className="flex">
                   <div className="flex-shrink-0 w-48">
                     <div className="relative aspect-video rounded-l-md overflow-hidden bg-muted">
@@ -160,28 +176,64 @@ const TopFive = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyLink(music.youtube_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyLink(music.youtube_id);
+                            }}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => openYouTube(music.youtube_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openYouTube(music.youtube_id);
+                            }}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         </div>
                         
                         {user && !music.is_approved && (
-                          <Button
-                            size="sm"
-                            onClick={() => contributeToMusic(music.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <ThumbsUp className="h-4 w-4 mr-1" />
-                            Contribuir ({music.count_to_approve}/5)
-                          </Button>
+                          user.role === 'admin' ? (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  approveMusic(music.id, 'approve');
+                                }}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                              >
+                                <ThumbsUp className="h-4 w-4 mr-1" />
+                                Aprovar
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  approveMusic(music.id, 'reject');
+                                }}
+                                className="flex-1 bg-red-600 hover:bg-red-700"
+                              >
+                                <ThumbsDown className="h-4 w-4 mr-1" />
+                                Reprovar
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                contributeToMusic(music.id);
+                              }}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              Contribuir ({music.count_to_approve}/5)
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>

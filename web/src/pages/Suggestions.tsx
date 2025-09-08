@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Youtube, ExternalLink, ThumbsUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Youtube, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth';
 import { api, ApiError } from '@/lib/api';
 import { Suggestion, ApiResponse } from '@/types';
 import { getYouTubeThumbnail } from '@/lib/youtube';
+import { getErrorMessage } from '@/lib/errorHandler';
 
 export default function Suggestions() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -35,7 +36,7 @@ export default function Suggestions() {
       setSuggestions(response.data.data || []);
     } catch (error) {
       if (error instanceof ApiError) {
-        setSuggestions(mockSuggestions);
+        setSuggestions([]);
       }
     } finally {
       setIsLoading(false);
@@ -64,13 +65,11 @@ export default function Suggestions() {
       setIsFormOpen(false);
       setEditingSuggestion(null);
     } catch (error) {
-      if (error instanceof ApiError) {
-        toast({
-          title: t('error'),
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -85,13 +84,11 @@ export default function Suggestions() {
       });
       fetchSuggestions();
     } catch (error) {
-      if (error instanceof ApiError) {
-        toast({
-          title: t('error'),
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -100,17 +97,32 @@ export default function Suggestions() {
       await api.post(`/musics/${musicId}/contribute`);
       toast({
         title: t('success'),
-        description: 'Obrigado por contribuir! Seu voto foi registrado.',
+        description: t('contributionRecorded'),
       });
-      fetchSuggestions(); // Refresh to show updated counts
+      fetchSuggestions();
     } catch (error) {
-      if (error instanceof ApiError) {
-        toast({
-          title: t('error'),
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const approveMusic = async (musicId: number, action: 'approve' | 'reject') => {
+    try {
+      await api.post(`/musics/${musicId}/approve`, { action });
+      toast({
+        title: t('success'),
+        description: action === 'approve' ? t('musicApproved') : t('musicRejected'),
+      });
+      fetchSuggestions();
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: getErrorMessage(error, t),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -167,7 +179,7 @@ export default function Suggestions() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {(suggestions || []).map((suggestion) => (
-              <Card key={suggestion.id} className="overflow-hidden">
+              <Card key={suggestion.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" >
                 <CardHeader className="pb-3">
                   <div className="relative aspect-video mb-3 rounded-md overflow-hidden bg-muted">
                     <img
@@ -181,7 +193,9 @@ export default function Suggestions() {
                     <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                       <Button
                         size="sm"
-                        onClick={() => window.open(`https://www.youtube.com/watch?v=${suggestion.youtube_id}`, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                         className="bg-red-600 hover:bg-red-700"
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
@@ -210,14 +224,20 @@ export default function Suggestions() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => openForm(suggestion)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openForm(suggestion);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDelete(suggestion.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(suggestion.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -240,14 +260,35 @@ export default function Suggestions() {
                   
                   {user && !suggestion.is_approved && (
                     <div className="mt-3">
-                      <Button
-                        size="sm"
-                        onClick={() => contributeToMusic(suggestion.id)}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        <ThumbsUp className="h-4 w-4 mr-1" />
-                        Contribuir ({suggestion.count_to_approve}/5)
-                      </Button>
+                      {user.role === 'admin' ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => approveMusic(suggestion.id, 'approve')}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            <ThumbsUp className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => approveMusic(suggestion.id, 'reject')}
+                            className="flex-1 bg-red-600 hover:bg-red-700"
+                          >
+                            <ThumbsDown className="h-4 w-4 mr-1" />
+                            Reprovar
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => contributeToMusic(suggestion.id)}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          <ThumbsUp className="h-4 w-4 mr-1" />
+                          Contribuir ({suggestion.count_to_approve}/5)
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -259,23 +300,3 @@ export default function Suggestions() {
     </ProtectedRoute>
   );
 }
-
-const mockSuggestions: Suggestion[] = [
-  {
-    id: 's1',
-    title: 'Amazing Song',
-    artist: 'Great Artist',
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    youtubeId: 'dQw4w9WgXcQ',
-    submittedBy: { id: 'u1', name: 'João Silva' },
-    createdAt: '2024-01-15T10:30:00Z',
-  },
-  {
-    id: 's2',
-    title: 'Another Great Track',
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    youtubeId: 'dQw4w9WgXcQ',
-    submittedBy: { id: 'u2', name: 'Maria Santos' },
-    createdAt: '2024-01-14T15:45:00Z',
-  },
-];

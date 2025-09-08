@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('music_id')->constrained()->onDelete('cascade');
+            $table->foreignId('music_id')->constrained('musics')->onDelete('cascade');
             $table->enum('type', ['approved', 'rejected', 'auto_approved']);
             $table->string('title');
             $table->text('message');
