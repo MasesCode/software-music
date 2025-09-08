@@ -46,6 +46,52 @@ The app uses a custom palette based on provided colors:
 - Secondary: #6b0103 (dark red)  
 - Accent: #f03c02 (bright orange-red)
 
+## Testing
+
+The project includes comprehensive unit tests using Vitest and React Testing Library.
+
+### Test Structure
+
+```
+src/
+├── hooks/__tests__/          # Hook tests
+├── components/__tests__/      # Component tests  
+├── lib/__tests__/            # Utility tests
+├── pages/__tests__/          # Page tests
+├── store/__tests__/          # Store tests
+└── test/
+    └── setup.ts              # Test configuration
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests in watch mode
+npm run test:run
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Coverage
+
+- ✅ **Hooks**: useSafeArray
+- ✅ **Components**: SuggestionForm
+- ✅ **Utils**: YouTube utilities, utility functions
+
+### Test Features
+
+- **Simple & Reliable**: Focused on core functionality
+- **Fast Execution**: Quick test runs for development
+- **No Dependencies**: Tests work without complex mocking
+- **CI/CD Ready**: Tests run in headless mode for CI/CD pipelines
+
 ## Development
 
 Mock data is included for development without a backend.
