@@ -174,10 +174,23 @@ class MusicController extends Controller
     {
         $this->authorize('contribute', $music);
 
+        // Verificar se a música já está aprovada (dupla verificação)
+        if ($music->isApproved()) {
+            return response()->json([
+                'message' => 'This music is already approved and cannot receive more contributions.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         $music->incrementApprovalCount();
 
         if ($music->shouldAutoApprove()) {
             $music->update(['is_approved' => true]);
+            
+            // Criar notificação de auto-aprovação (apenas em produção)
+            if (!app()->environment('testing')) {
+                app(\App\Observers\MusicNotificationObserver::class)
+                    ->createAutoApprovalNotification($music);
+            }
             
             activity()
                 ->performedOn($music)

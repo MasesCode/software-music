@@ -184,18 +184,6 @@ class MusicTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_cannot_contribute_to_approved_music(): void
-    {
-        $user = User::factory()->create(['is_admin' => false]);
-        $music = Music::factory()->create(['is_approved' => true]);
-        $token = JWTAuth::fromUser($user);
-
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson("/api/musics/{$music->id}/contribute");
-
-        $response->assertStatus(403);
-    }
 
     public function test_music_creation_validation(): void
     {
@@ -223,5 +211,69 @@ class MusicTest extends TestCase
     {
         $response = $this->getJson('/api/musics/pending');
         $response->assertStatus(401);
+    }
+
+    public function test_can_contribute_to_pending_music(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $token = JWTAuth::fromUser($user);
+        
+        $music = Music::factory()->create([
+            'is_approved' => false,
+            'count_to_approve' => 2
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson("/api/musics/{$music->id}/contribute");
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Music contribution recorded.',
+        ]);
+
+        $music->refresh();
+        $this->assertEquals(3, $music->count_to_approve);
+    }
+
+    public function test_cannot_contribute_to_approved_music(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $token = JWTAuth::fromUser($user);
+        
+        $music = Music::factory()->create([
+            'is_approved' => true,
+            'count_to_approve' => 5
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson("/api/musics/{$music->id}/contribute");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_auto_approval_after_five_contributions(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $token = JWTAuth::fromUser($user);
+        
+        $music = Music::factory()->create([
+            'is_approved' => false,
+            'count_to_approve' => 4
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson("/api/musics/{$music->id}/contribute");
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Music contribution recorded and auto-approved!',
+        ]);
+
+        $music->refresh();
+        $this->assertTrue($music->is_approved);
+        $this->assertEquals(5, $music->count_to_approve);
     }
 }
