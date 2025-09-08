@@ -58,3 +58,5 @@ class NotificationSeeder extends Seeder
         $this->command->info('Notificações criadas: 2');
     }
 }
+
+
